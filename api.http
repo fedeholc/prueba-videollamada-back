@@ -16,7 +16,7 @@ content-type: application/json
  
 ###
 
-GET  https://prueba-videollamada-back.vercel.app/get-rooms HTTP/1.1
+GET  https://prueba-videollamada-back.fly.dev:3000/get-rooms HTTP/1.1
 content-type: application/json
 
  
