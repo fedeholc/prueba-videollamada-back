@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    { "src": "/insert-room", "dest": "/app.js" },
+    { "src": "/get-rooms", "dest": "/app.js" }
+  ]
+}
