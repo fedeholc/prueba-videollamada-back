@@ -41,7 +41,7 @@ app.use(
   })
 );
 
-const httpsOptions = {
+/* const httpsOptions = {
   key: readFileSync(
     path.join(path.dirname(new URL(import.meta.url).pathname), "server.key")
   ),
@@ -49,7 +49,7 @@ const httpsOptions = {
     path.join(path.dirname(new URL(import.meta.url).pathname), "server.cert")
   ),
 };
-const httpsServer = createHTTPSServer(httpsOptions, app);
+const httpsServer = createHTTPSServer(httpsOptions, app); */
 
 app.post("/insert-room", async (req, res) => {
   try {
@@ -81,11 +81,34 @@ app.get("*", (req, res) => {
 /* app.listen(process.env.PORT, () =>
   console.log(`Server running on port ${process.env.PORT}`)
 ); */
-
+/* 
 httpsServer.listen(process.env.PORT, () => {
   console.log(`HTTPS server listening on port ${process.env.PORT}`);
 });
+ */
 
+// Verificar si estamos en desarrollo o producción
+if (process.env.NODE_ENV === "development") {
+  // Solo en desarrollo: usar HTTPS
+  const httpsOptions = {
+    key: readFileSync(
+      path.join(path.dirname(new URL(import.meta.url).pathname), "server.key")
+    ),
+    cert: readFileSync(
+      path.join(path.dirname(new URL(import.meta.url).pathname), "server.cert")
+    ),
+  };
+  const httpsServer = createHTTPSServer(httpsOptions, app);
+
+  httpsServer.listen(process.env.PORT, () => {
+    console.log(`HTTPS server listening on port ${process.env.PORT}`);
+  });
+} else {
+  // En producción o si no es 'development': usar HTTP (Express por defecto)
+  app.listen(process.env.PORT, () => {
+    console.log(`Server running on port ${process.env.PORT}`);
+  });
+}
 function checkEnvVariables() {
   const requiredEnvVars = [
     "NODE_ENV",
