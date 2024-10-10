@@ -7,7 +7,7 @@
     }
   ],
   "routes": [
-    { "src": "/insert-room", "dest": "/app.js" },
+    { "src": "/insert-room", "dest": "/src/app.js" },
     { "src": "/get-rooms", "dest": "/app.js" }
   ]
 }
