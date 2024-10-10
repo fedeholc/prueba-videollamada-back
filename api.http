@@ -1,5 +1,5 @@
 ### 
-POST http://localhost:1234/insert-room HTTP/1.1
+POST https://prueba-videollamada-back.vercel.app/insert-room HTTP/1.1
 content-type: application/json
 
 {
@@ -11,6 +11,12 @@ content-type: application/json
 ###
 
 GET  http://localhost:1234/get-rooms HTTP/1.1
+content-type: application/json
+
+ 
+###
+
+GET  https://prueba-videollamada-back.vercel.app/get-rooms HTTP/1.1
 content-type: application/json
 
  

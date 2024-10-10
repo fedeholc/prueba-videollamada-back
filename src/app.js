@@ -100,12 +100,12 @@ if (process.env.NODE_ENV === "development") {
   };
   const httpsServer = createHTTPSServer(httpsOptions, app);
 
-  httpsServer.listen(process.env.PORT, () => {
+  httpsServer.listen(process.env.PORT || 3000, () => {
     console.log(`HTTPS server listening on port ${process.env.PORT}`);
   });
 } else {
   // En producción o si no es 'development': usar HTTP (Express por defecto)
-  app.listen(process.env.PORT, () => {
+  app.listen(process.env.PORT || 3000, () => {
     console.log(`Server running on port ${process.env.PORT}`);
   });
 }
