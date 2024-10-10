@@ -1,0 +1,18 @@
+### 
+POST http://localhost:1234/insert-room HTTP/1.1
+content-type: application/json
+
+{
+ "user": "xa", 
+ "roomId": "bsdfsdfsdfsdfds",
+ "date": "23423432"
+}
+
+###
+
+GET  http://localhost:1234/get-rooms HTTP/1.1
+content-type: application/json
+
+ 
+###
+ 

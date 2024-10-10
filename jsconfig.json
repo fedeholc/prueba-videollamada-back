@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "checkJs": true,
+    "target": "ES2022",
+    "module": "es2022",
+    "moduleResolution": "node",
+    // O "ESNext" si usas ESM
+    "esModuleInterop": true, // Asegura compatibilidad entre imports de CommonJS/ESM
+    "skipLibCheck": true, // Opcional, para evitar errores por archivos .d.ts de otros módulos
+    "paths": {
+      "@libsql/client": ["./node_modules/@libsql/client"],
+      "@libsql/client/web": ["./node_modules/@libsql/client/web"]
+    }
+  }
+}
