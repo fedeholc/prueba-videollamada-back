@@ -133,7 +133,22 @@ io.on("connection", (socket) => {
   socket.on("getUsersInRoom", (roomId) => {
     console.log("Usuario ", socket.id, " pidiendo usuarios en la sala", roomId);
     if (rooms.has(roomId)) {
+      console.log("Usuarios en la sala", Array.from(rooms.get(roomId)));
       socket.emit("usersInRoom", Array.from(rooms.get(roomId)));
+    }
+  });
+
+  socket.on("getUsersInCall", (roomId) => {
+    console.log(
+      "Usuario ",
+      socket.id,
+      " pidiendo usuarios en la llamada  ",
+      roomId
+    );
+    console.log("Llamadas:", roomsCalls);
+    if (roomsCalls.has(roomId)) {
+      console.log("Usuarios en la llamada", Array.from(roomsCalls.get(roomId)));
+      /* io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId))); */
     }
   });
 
@@ -173,19 +188,32 @@ io.on("connection", (socket) => {
 
     io.emit("updateRooms", mapWithSetsToObject(rooms));
     io.to(roomId).emit("usersInRoom", Array.from(rooms.get(roomId)));
+    if (roomsCalls.has(roomId)) {
+      io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
+    }
   });
 
   socket.on("leaveRoom", (roomId) => {
-    socket.leave(roomId);
-
     if (rooms.has(roomId)) {
       rooms.get(roomId).delete(socket.id);
       if (rooms.get(roomId).size === 0) {
         rooms.delete(roomId);
       }
     }
+    if (roomsCalls.has(roomId)) {
+      roomsCalls.get(roomId).delete(socket.id);
+      if (roomsCalls.get(roomId).size === 0) {
+        roomsCalls.delete(roomId);
+      }
+    }
+    if (roomsCalls.has(roomId)) {
+      io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
+    } else {
+      io.to(roomId).emit("usersInCall", []);
+    }
 
     io.emit("updateRooms", mapWithSetsToObject(rooms));
+    socket.leave(roomId);
   });
 
   socket.on("disconnect", () => {
@@ -199,6 +227,15 @@ io.on("connection", (socket) => {
         } else {
           //por si me sirviera avisar que se desconectó
           //socket.to(roomId).emit("userDisconnected");
+        }
+      }
+    });
+
+    roomsCalls.forEach((clients, roomId) => {
+      if (clients.has(socket.id)) {
+        clients.delete(socket.id);
+        if (clients.size === 0) {
+          roomsCalls.delete(roomId);
         }
       }
     });
