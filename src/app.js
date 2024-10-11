@@ -7,7 +7,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-
+import { Server } from "socket.io";
+import { createServer } from "http";
 dotenv.config();
 
 checkEnvVariables();
@@ -89,6 +90,7 @@ httpsServer.listen(process.env.PORT, () => {
   console.log(`HTTPS server listening on port ${process.env.PORT}`);
 });
  */
+let server;
 
 // Verificar si estamos en desarrollo o producción
 if (process.env.NODE_ENV === "development") {
@@ -101,17 +103,120 @@ if (process.env.NODE_ENV === "development") {
       path.join(path.dirname(new URL(import.meta.url).pathname), "server.cert")
     ),
   };
-  const httpsServer = createHTTPSServer(httpsOptions, app);
-
-  httpsServer.listen(process.env.PORT || 3000, () => {
-    console.log(`HTTPS server listening on port ${process.env.PORT}`);
-  });
+  /*   const httpsServer = createHTTPSServer(httpsOptions, app);
+   */ server = createHTTPSServer(httpsOptions, app);
+  /*  httpsServer.listen(1443, () => {
+    console.log(`HTTPS server listening on port 1443`);
+  }); */
 } else {
   // En producción o si no es 'development': usar HTTP (Express por defecto)
-  app.listen(process.env.PORT || 3000, () => {
+  /* app.listen(process.env.PORT || 3000, () => {
     console.log(`Server running on port ${process.env.PORT}`);
-  });
+  }); */
+  server = createServer(app);
 }
+
+/* if (process.env.NODE_ENV === "development") {
+  server = createHTTPSServer(httpsOptions, app);
+} else {
+  server = createServer(app);
+} */
+
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Permite solicitudes desde tu aplicación React
+    methods: ["GET", "POST"],
+  },
+});
+
+const rooms = new Map();
+let salas = {};
+
+io.on("connection", (socket) => {
+  console.log("New client connected", socket.id);
+
+  socket.on("joinRoom", (salaId) => {
+    console.log("Usuario conectado", socket.id, "a la sala", salaId);
+    socket.join(salaId);
+
+    // Actualizar la lista de usuarios en la sala
+    if (!salas[salaId]) {
+      salas[salaId] = [];
+    }
+    salas[salaId].push(socket.id);
+
+    // Notificar a todos los clientes la actualización de la sala
+    io.emit("updateSalas", salas);
+  });
+
+  socket.on("leaveRoom", (salaId) => {
+    socket.leave(salaId);
+    if (salas[salaId]) {
+      salas[salaId] = salas[salaId].filter((id) => id !== socket.id);
+      if (salas[salaId].length === 0) {
+        delete salas[salaId]; // Eliminar la sala si está vacía
+      }
+    }
+    io.emit("updateSalas", salas); // Notificar el cambio
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Usuario desconectado", socket.id);
+    // Limpiar las salas en las que estaba
+    for (let salaId in salas) {
+      salas[salaId] = salas[salaId].filter((id) => id !== socket.id);
+      if (salas[salaId].length === 0) {
+        delete salas[salaId];
+      }
+    }
+    io.emit("updateSalas", salas);
+  });
+
+  /* 
+  socket.on("join", (roomId) => {
+    if (!rooms.has(roomId)) {
+      rooms.set(roomId, new Set());
+    }
+    rooms.get(roomId).add(socket.id);
+    socket.join(roomId);
+    socket.emit("room_joined", roomId);
+
+    if (rooms.get(roomId).size === 2) {
+      socket.to(roomId).emit("start_call");
+    }
+  });
+
+  socket.on("offer", (offer, roomId) => {
+    socket.to(roomId).emit("offer", offer);
+  });
+
+  socket.on("answer", (answer, roomId) => {
+    socket.to(roomId).emit("answer", answer);
+  });
+
+  socket.on("ice-candidate", (candidate, roomId) => {
+    socket.to(roomId).emit("ice-candidate", candidate);
+  });
+
+  socket.on("disconnect", () => {
+    rooms.forEach((clients, roomId) => {
+      if (clients.has(socket.id)) {
+        clients.delete(socket.id);
+        if (clients.size === 0) {
+          rooms.delete(roomId);
+        } else {
+          socket.to(roomId).emit("user_disconnected");
+        }
+      }
+    });
+    console.log("Client disconnected");
+  }); */
+});
+
+server.listen(process.env.PORT || 3000, () =>
+  console.log(`Server is running on port ${process.env.PORT || 3000}`)
+);
+
 function checkEnvVariables() {
   const requiredEnvVars = [
     "NODE_ENV",
