@@ -92,93 +92,119 @@ if (process.env.NODE_ENV === "development") {
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: function (origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        return callback(null, true); //por ahora permitir todo
+        /*return callback(new Error("Not allowed by CORS"));*/
+      }
+    },
+    credentials: true,
     methods: ["GET", "POST"],
   },
 });
 
+function mapWithSetsToObject(map) {
+  const result = {};
+
+  map.forEach((valueSet, key) => {
+    result[key] = Array.from(valueSet); // Convertir el Set a un Array
+  });
+
+  return result;
+}
+
 const rooms = new Map();
-let salas = {};
+const roomsCalls = new Map();
 
 io.on("connection", (socket) => {
   console.log("New client connected", socket.id);
 
-  socket.on("joinRoom", (salaId) => {
-    console.log("Usuario conectado", socket.id, "a la sala", salaId);
-    socket.join(salaId);
-
-    // Actualizar la lista de usuarios en la sala
-    if (!salas[salaId]) {
-      salas[salaId] = [];
-    }
-    salas[salaId].push(socket.id);
-
-    // Notificar a todos los clientes la actualización de la sala
-    io.emit("updateSalas", salas);
+  socket.on("getRooms", () => {
+    console.log("Usuario ", socket.id, " pidiendo salas");
+    console.log("Salas:", rooms);
+    io.emit("updateRooms", mapWithSetsToObject(rooms));
   });
 
-  socket.on("leaveRoom", (salaId) => {
-    socket.leave(salaId);
-    if (salas[salaId]) {
-      salas[salaId] = salas[salaId].filter((id) => id !== socket.id);
-      if (salas[salaId].length === 0) {
-        delete salas[salaId]; // Eliminar la sala si está vacía
-      }
+  socket.on("getUsersInRoom", (roomId) => {
+    console.log("Usuario ", socket.id, " pidiendo usuarios en la sala", roomId);
+    if (rooms.has(roomId)) {
+      socket.emit("usersInRoom", Array.from(rooms.get(roomId)));
     }
-    io.emit("updateSalas", salas); // Notificar el cambio
   });
 
-  socket.on("disconnect", () => {
-    console.log("Usuario desconectado", socket.id);
-    // Limpiar las salas en las que estaba
-    for (let salaId in salas) {
-      salas[salaId] = salas[salaId].filter((id) => id !== socket.id);
-      if (salas[salaId].length === 0) {
-        delete salas[salaId];
-      }
+  socket.on("joinCall", (roomId, date) => {
+    console.log(
+      "Usuario ",
+      socket.id,
+      " conectado a la llamada en ",
+      roomId,
+      " a las ",
+      date
+    );
+
+    if (!roomsCalls.has(roomId)) {
+      roomsCalls.set(roomId, new Set());
     }
-    io.emit("updateSalas", salas);
+    roomsCalls.get(roomId).add(socket.id);
+
+    io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
   });
 
-  /* 
-  socket.on("join", (roomId) => {
+  socket.on("joinRoom", (roomId) => {
+    console.log("Usuario ", socket.id, " conectado a la sala", roomId);
+
+    socket.join(roomId);
+
     if (!rooms.has(roomId)) {
       rooms.set(roomId, new Set());
     }
     rooms.get(roomId).add(socket.id);
-    socket.join(roomId);
-    socket.emit("room_joined", roomId);
 
-    if (rooms.get(roomId).size === 2) {
-      socket.to(roomId).emit("start_call");
+    console.log("Salas:", rooms);
+    //en caso de querer implementar que cuando estén los dos se inicie la llamada
+    /* if (rooms.get(roomId).size === 2) {
+      socket.to(roomId).emit("startCall");
+    } */
+
+    io.emit("updateRooms", mapWithSetsToObject(rooms));
+    io.to(roomId).emit("usersInRoom", Array.from(rooms.get(roomId)));
+  });
+
+  socket.on("leaveRoom", (roomId) => {
+    socket.leave(roomId);
+
+    if (rooms.has(roomId)) {
+      rooms.get(roomId).delete(socket.id);
+      if (rooms.get(roomId).size === 0) {
+        rooms.delete(roomId);
+      }
     }
-  });
 
-  socket.on("offer", (offer, roomId) => {
-    socket.to(roomId).emit("offer", offer);
-  });
-
-  socket.on("answer", (answer, roomId) => {
-    socket.to(roomId).emit("answer", answer);
-  });
-
-  socket.on("ice-candidate", (candidate, roomId) => {
-    socket.to(roomId).emit("ice-candidate", candidate);
+    io.emit("updateRooms", mapWithSetsToObject(rooms));
   });
 
   socket.on("disconnect", () => {
+    console.log("Usuario desconectado", socket.id);
+
     rooms.forEach((clients, roomId) => {
       if (clients.has(socket.id)) {
         clients.delete(socket.id);
         if (clients.size === 0) {
           rooms.delete(roomId);
         } else {
-          socket.to(roomId).emit("user_disconnected");
+          //por si me sirviera avisar que se desconectó
+          //socket.to(roomId).emit("userDisconnected");
         }
       }
     });
-    console.log("Client disconnected");
-  }); */
+
+    io.emit("updateRooms", mapWithSetsToObject(rooms));
+  });
 });
 
 server.listen(process.env.PORT || 3000, () =>
