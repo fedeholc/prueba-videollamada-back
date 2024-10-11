@@ -45,16 +45,6 @@ app.use(
   })
 );
 
-/* const httpsOptions = {
-  key: readFileSync(
-    path.join(path.dirname(new URL(import.meta.url).pathname), "server.key")
-  ),
-  cert: readFileSync(
-    path.join(path.dirname(new URL(import.meta.url).pathname), "server.cert")
-  ),
-};
-const httpsServer = createHTTPSServer(httpsOptions, app); */
-
 app.post("/insert-room", async (req, res) => {
   try {
     const { user, roomId, date } = req.body;
@@ -82,14 +72,6 @@ app.get("*", (req, res) => {
   res.status(404).send("¡Hola! 404 Page not found");
 });
 
-/* app.listen(process.env.PORT, () =>
-  console.log(`Server running on port ${process.env.PORT}`)
-); */
-/* 
-httpsServer.listen(process.env.PORT, () => {
-  console.log(`HTTPS server listening on port ${process.env.PORT}`);
-});
- */
 let server;
 
 // Verificar si estamos en desarrollo o producción
@@ -103,24 +85,10 @@ if (process.env.NODE_ENV === "development") {
       path.join(path.dirname(new URL(import.meta.url).pathname), "server.cert")
     ),
   };
-  /*   const httpsServer = createHTTPSServer(httpsOptions, app);
-   */ server = createHTTPSServer(httpsOptions, app);
-  /*  httpsServer.listen(1443, () => {
-    console.log(`HTTPS server listening on port 1443`);
-  }); */
-} else {
-  // En producción o si no es 'development': usar HTTP (Express por defecto)
-  /* app.listen(process.env.PORT || 3000, () => {
-    console.log(`Server running on port ${process.env.PORT}`);
-  }); */
-  server = createServer(app);
-}
-
-/* if (process.env.NODE_ENV === "development") {
   server = createHTTPSServer(httpsOptions, app);
 } else {
   server = createServer(app);
-} */
+}
 
 const io = new Server(server, {
   cors: {
