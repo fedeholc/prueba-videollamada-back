@@ -92,7 +92,7 @@ if (process.env.NODE_ENV === "development") {
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Permite solicitudes desde tu aplicación React
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
