@@ -20,6 +20,9 @@ const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5174",
   "http://localhost:5174",
   "https://192.168.0.59:5174",
+  "http://127.0.0.1:5173",
+  "http://localhost:5173",
+  "https://192.168.0.59:5173",
 ];
 
 db.createTables();
@@ -121,13 +124,15 @@ function mapWithSetsToObject(map) {
 const rooms = new Map();
 const roomsCalls = new Map();
 
-io.on("connection", (socket) => {
+const nspRooms = io.of("/nspRooms");
+
+nspRooms.on("connection", (socket) => {
   console.log("New client connected", socket.id);
 
   socket.on("getRooms", () => {
     console.log("Usuario ", socket.id, " pidiendo salas");
     console.log("Salas:", rooms);
-    io.emit("updateRooms", mapWithSetsToObject(rooms));
+    nspRooms.emit("updateRooms", mapWithSetsToObject(rooms));
   });
 
   socket.on("getUsersInRoom", (roomId) => {
@@ -148,7 +153,7 @@ io.on("connection", (socket) => {
     console.log("Llamadas:", roomsCalls);
     if (roomsCalls.has(roomId)) {
       console.log("Usuarios en la llamada", Array.from(roomsCalls.get(roomId)));
-      /* io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId))); */
+      /* nspRooms.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId))); */
     }
   });
 
@@ -167,7 +172,7 @@ io.on("connection", (socket) => {
     }
     roomsCalls.get(roomId).add(socket.id);
 
-    io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
+    nspRooms.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
   });
 
   socket.on("joinRoom", (roomId) => {
@@ -186,10 +191,12 @@ io.on("connection", (socket) => {
       socket.to(roomId).emit("startCall");
     } */
 
-    io.emit("updateRooms", mapWithSetsToObject(rooms));
-    io.to(roomId).emit("usersInRoom", Array.from(rooms.get(roomId)));
+    nspRooms.emit("updateRooms", mapWithSetsToObject(rooms));
+    nspRooms.to(roomId).emit("usersInRoom", Array.from(rooms.get(roomId)));
     if (roomsCalls.has(roomId)) {
-      io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
+      nspRooms
+        .to(roomId)
+        .emit("usersInCall", Array.from(roomsCalls.get(roomId)));
     }
   });
 
@@ -207,13 +214,31 @@ io.on("connection", (socket) => {
       }
     }
     if (roomsCalls.has(roomId)) {
-      io.to(roomId).emit("usersInCall", Array.from(roomsCalls.get(roomId)));
+      nspRooms
+        .to(roomId)
+        .emit("usersInCall", Array.from(roomsCalls.get(roomId)));
     } else {
-      io.to(roomId).emit("usersInCall", []);
+      nspRooms.to(roomId).emit("usersInCall", []);
     }
 
-    io.emit("updateRooms", mapWithSetsToObject(rooms));
+    nspRooms.emit("updateRooms", mapWithSetsToObject(rooms));
     socket.leave(roomId);
+  });
+
+  socket.on("leaveCall", (roomId) => {
+    if (roomsCalls.has(roomId)) {
+      roomsCalls.get(roomId).delete(socket.id);
+      if (roomsCalls.get(roomId).size === 0) {
+        roomsCalls.delete(roomId);
+      }
+    }
+    if (roomsCalls.has(roomId)) {
+      nspRooms
+        .to(roomId)
+        .emit("usersInCall", Array.from(roomsCalls.get(roomId)));
+    } else {
+      nspRooms.to(roomId).emit("usersInCall", []);
+    }
   });
 
   socket.on("disconnect", () => {
@@ -240,7 +265,25 @@ io.on("connection", (socket) => {
       }
     });
 
-    io.emit("updateRooms", mapWithSetsToObject(rooms));
+    nspRooms.emit("updateRooms", mapWithSetsToObject(rooms));
+  });
+});
+
+const namespaces = io.of(/^\/[\w-]+$/);
+
+namespaces.on("connect", function (socket) {
+  const namespace = socket.nsp;
+  console.log(`Video Socket namespace: ${namespace.name}`);
+
+  console.log("--- emito connected peer", socket.id);
+  socket.broadcast.emit("connected peer");
+
+  socket.on("signal", function (data) {
+    socket.broadcast.emit("signal", data);
+  });
+
+  socket.on("disconnect", function () {
+    namespace.emit("disconnected peer");
   });
 });
 
