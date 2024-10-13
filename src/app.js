@@ -244,10 +244,10 @@ nspRooms.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("Usuario desconectado", socket.id);
 
-    rooms.forEach((clients, roomId) => {
-      if (clients.has(socket.id)) {
-        clients.delete(socket.id);
-        if (clients.size === 0) {
+    rooms.forEach((clientsSet, roomId) => {
+      if (clientsSet.has(socket.id)) {
+        clientsSet.delete(socket.id);
+        if (clientsSet.size === 0) {
           rooms.delete(roomId);
         } else {
           //por si me sirviera avisar que se desconectó
@@ -256,11 +256,14 @@ nspRooms.on("connection", (socket) => {
       }
     });
 
-    roomsCalls.forEach((clients, roomId) => {
-      if (clients.has(socket.id)) {
-        clients.delete(socket.id);
-        if (clients.size === 0) {
+    roomsCalls.forEach((clientsSet, roomId) => {
+      if (clientsSet.has(socket.id)) {
+        clientsSet.delete(socket.id);
+        if (clientsSet.size === 0) {
           roomsCalls.delete(roomId);
+          nspRooms.to(roomId).emit("usersInCall", []);
+        } else {
+          nspRooms.to(roomId).emit("usersInCall", Array.from(clientsSet));
         }
       }
     });
