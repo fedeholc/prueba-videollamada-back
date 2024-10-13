@@ -1,7 +1,6 @@
 import process from "process";
 import { readFileSync } from "fs";
 import { createServer as createHTTPSServer } from "https";
-import { db } from "./global-store.js";
 import path from "path";
 import express from "express";
 import cors from "cors";
@@ -11,7 +10,6 @@ import { Server } from "socket.io";
 import { createServer } from "http";
 dotenv.config();
 
-checkEnvVariables();
 const ALLOWED_ORIGINS = [
   "http://127.0.0.1:5500",
   "http://localhost:5500",
@@ -24,8 +22,6 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "https://192.168.0.59:5173",
 ];
-
-db.createTables();
 
 const app = express();
 app.use(express.json());
@@ -47,29 +43,6 @@ app.use(
     credentials: true,
   })
 );
-
-app.post("/insert-room", async (req, res) => {
-  try {
-    const { user, roomId, date } = req.body;
-    console.log(req.body);
-    const result = await db.insertRoom(user, roomId, date);
-    console.log("result", result);
-    res.status(200).json(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json("Internal Server Error");
-  }
-});
-
-app.get("/get-rooms", async (req, res) => {
-  try {
-    const result = await db.getRooms();
-    res.status(200).json(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json("Internal Server Error");
-  }
-});
 
 app.get("*", (req, res) => {
   res.status(404).send("¡Hola! 404 Page not found");
@@ -302,22 +275,3 @@ namespaces.on("connect", function (socket) {
 server.listen(process.env.PORT || 3000, () =>
   console.log(`Server is running on port ${process.env.PORT || 3000}`)
 );
-
-function checkEnvVariables() {
-  const requiredEnvVars = [
-    "NODE_ENV",
-    "PORT",
-    "TURSO_DATABASE_URL",
-    "TURSO_AUTH_TOKEN",
-  ];
-
-  const missingEnvVars = requiredEnvVars.filter(
-    (envVar) => !process.env[envVar]
-  );
-
-  if (missingEnvVars.length > 0) {
-    throw new Error(
-      `Faltan las siguientes variables de entorno: ${missingEnvVars.join(", ")}`
-    );
-  }
-}
