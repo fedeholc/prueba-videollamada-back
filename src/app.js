@@ -115,7 +115,7 @@ function mapWithSetsToObject(map) {
   const result = {};
 
   map.forEach((valueSet, key) => {
-    result[key] = Array.from(valueSet);  
+    result[key] = Array.from(valueSet);
   });
 
   return result;
@@ -131,7 +131,6 @@ nspRooms.on("connection", (socket) => {
 
   socket.on("getRooms", () => {
     console.log("Usuario ", socket.id, " pidiendo salas");
-    console.log("Salas:", rooms);
     nspRooms.emit("updateRooms", mapWithSetsToObject(rooms));
   });
 
@@ -185,7 +184,6 @@ nspRooms.on("connection", (socket) => {
     }
     rooms.get(roomId).add(socket.id);
 
-    console.log("Salas:", rooms);
     //en caso de querer implementar que cuando estén los dos se inicie la llamada
     /* if (rooms.get(roomId).size === 2) {
       socket.to(roomId).emit("startCall");
@@ -247,6 +245,16 @@ nspRooms.on("connection", (socket) => {
     rooms.forEach((clientsSet, roomId) => {
       if (clientsSet.has(socket.id)) {
         clientsSet.delete(socket.id);
+        console.log(
+          "Usuario ",
+          socket.id,
+          " desconectado de la sala",
+          roomId,
+          "emito usersInRoom",
+          Array.from(rooms.get(roomId))
+        );
+        nspRooms.to(roomId).emit("usersInRoom", Array.from(rooms.get(roomId)));
+
         if (clientsSet.size === 0) {
           rooms.delete(roomId);
         } else {
@@ -268,6 +276,7 @@ nspRooms.on("connection", (socket) => {
       }
     });
 
+    console.log("rooms", mapWithSetsToObject(rooms));
     nspRooms.emit("updateRooms", mapWithSetsToObject(rooms));
   });
 });

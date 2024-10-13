@@ -19,7 +19,7 @@ export class dbTurso {
    */
   init() {
     this.db = this.#getDbInstance(this.dbURI, this.authToken);
-    console.log("DBx turso", this.db, this.dbURI);
+    //console.log("DBx turso", this.db, this.dbURI);
   }
 
   /**
