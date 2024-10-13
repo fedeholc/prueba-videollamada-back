@@ -115,7 +115,7 @@ function mapWithSetsToObject(map) {
   const result = {};
 
   map.forEach((valueSet, key) => {
-    result[key] = Array.from(valueSet); // Convertir el Set a un Array
+    result[key] = Array.from(valueSet);  
   });
 
   return result;
