@@ -148,6 +148,17 @@ nspRooms.on("connection", (socket) => {
   });
 
   socket.on("joinRoom", (roomId) => {
+
+    //TODO: ojo, en realidad debería permitir un solo usuario paciente
+    // Máximo de dos usuarios por sala
+    if (rooms.has(roomId)) {
+      if (rooms.get(roomId).size === 2) {
+        console.log("Sala llena");
+        socket.emit("roomFull");
+        return;
+      }
+    }
+
     console.log("Usuario ", socket.id, " conectado a la sala", roomId);
 
     socket.join(roomId);
